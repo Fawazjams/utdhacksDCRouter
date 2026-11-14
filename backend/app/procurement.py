@@ -130,6 +130,9 @@ def decide(req: DecisionRequest) -> dict[str, Any]:
     if req.decision not in ("accept", "decline"):
         raise HTTPException(status_code=422, detail="decision must be 'accept' or 'decline'")
     prop = PROPOSALS.get(req.proposal_id)
+    if prop is None:  # serverless: the request may land on an instance that never ran /procure; it's seeded, so rebuild
+        run_procurement()
+        prop = PROPOSALS.get(req.proposal_id)
     if prop is None:
         raise HTTPException(status_code=404, detail=f"unknown proposal '{req.proposal_id}'")
     status = "accepted" if req.decision == "accept" else "declined"

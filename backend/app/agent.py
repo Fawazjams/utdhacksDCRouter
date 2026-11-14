@@ -15,10 +15,11 @@ from pathlib import Path
 from typing import Any, Callable, Protocol
 
 from dotenv import load_dotenv
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ValidationError
 
+from . import llm_guard
 from .config import COOLING_ZONES, HOURS, OVERHEAT_C, ZONE_NEIGHBORS, ZONE_RACKS
 from .demo_requests import match_demo
 from .schemas import (AgentRequest, AgentResponse, Mode, Plan, PlanRequest, Task, Violation, Window,
@@ -573,6 +574,12 @@ def get_llm() -> LLM | None:
     return NemotronClient(key) if key else None
 
 
+def guarded_llm(request: Request, text: str = "") -> LLM | None:
+    """get_llm() for public endpoints: None (offline path) when the caller is over the quota guard."""
+    llm = get_llm()
+    return llm if llm is not None and llm_guard.allow(request, text) else None
+
+
 # ---------------------------------------------------------------- loop, guardrails, explanation
 
 
@@ -785,8 +792,8 @@ def run_request(text: str, llm: LLM | None,
 
 
 @router.post("/request", response_model=AgentResponse)
-def handle_request(req: AgentRequest) -> AgentResponse:
-    return run_request(req.text, get_llm())
+def handle_request(req: AgentRequest, request: Request) -> AgentResponse:
+    return run_request(req.text, guarded_llm(request, req.text))
 
 
 def _ndjson_stream(start: dict[str, Any], run: Callable[[Callable[[dict[str, Any]], None]], AgentResponse]
@@ -826,10 +833,10 @@ def _ndjson_stream(start: dict[str, Any], run: Callable[[Callable[[dict[str, Any
 
 
 @router.post("/request/stream")
-def handle_request_stream(req: AgentRequest) -> StreamingResponse:
+def handle_request_stream(req: AgentRequest, request: Request) -> StreamingResponse:
     """Same run as POST /request, as NDJSON events the moment they happen:
     start, thinking*, tool*, explaining, done (or error). Labels of the tool events == done.response.tool_calls."""
-    llm = get_llm()
+    llm = guarded_llm(request, req.text)
     return _ndjson_stream({"type": "start", "text": req.text, "llm": llm is not None, "kind": "request"},
                           lambda put: run_request(req.text, llm, on_event=put))
 
@@ -891,14 +898,14 @@ def list_incidents() -> list[dict[str, Any]]:
 
 
 @router.post("/incident/stream")
-def handle_incident_stream(req: IncidentRequest) -> StreamingResponse:
+def handle_incident_stream(req: IncidentRequest, request: Request) -> StreamingResponse:
     """An alarm fires with no operator: Nemotron triages it, prices fix-now vs later and schedules the
     repair. Same NDJSON events as /request/stream; `start` adds kind="incident" and the incident."""
     from .incidents import alarm_text, get_incident
     inc = get_incident(req.incident_id)
     if inc is None:
         raise HTTPException(status_code=404, detail=f"unknown incident_id '{req.incident_id}'")
-    llm = get_llm()
+    llm = guarded_llm(request)
     return _ndjson_stream({"type": "start", "text": alarm_text(inc), "llm": llm is not None,
                            "kind": "incident", "incident": inc},
                           lambda put: run_incident(req.incident_id, llm, put, req.mode, req.extra_tasks))
@@ -991,7 +998,7 @@ def build_handoff(mode: str = "cloud", extra_tasks: list[Task] | None = None) ->
 
 
 @router.post("/handoff")
-def handoff(req: HandoffRequest) -> dict[str, Any]:
+def handoff(req: HandoffRequest, request: Request) -> dict[str, Any]:
     data = build_handoff(req.mode, req.extra_tasks)
-    data["shift_brief"], data["llm_used"] = guarded_rewrite(get_llm(), HANDOFF_PROMPT, data["shift_brief"])
+    data["shift_brief"], data["llm_used"] = guarded_rewrite(guarded_llm(request), HANDOFF_PROMPT, data["shift_brief"])
     return data
