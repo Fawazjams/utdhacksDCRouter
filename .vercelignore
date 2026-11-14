@@ -1,0 +1,11 @@
+# never upload secrets: with no NVIDIA_API_KEY the live site runs in offline mode
+.env
+**/.env
+**/.venv
+**/venv
+**/__pycache__
+**/.pytest_cache
+backend/tests
+prototype
+*.pdf
+*.code-workspace
