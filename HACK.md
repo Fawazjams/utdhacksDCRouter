@@ -47,7 +47,7 @@ Fawaz's lane (prices + cost model) is redistributed to Loki and Nandhan as of 21
 **Cut / stretch:** live price feed tool (only if P0-P1 done), fine-tuning, calls/texts.
 
 ## Problem (NMC² format)
-**When** a GPU data center has to take equipment offline for maintenance, **the operations lead struggles to** decide what to take down and when, **because** they can't see what each lost GPU-hour is worth on today's compute market. **Our solution helps them** schedule maintenance at the lowest compute cost without letting failure risk get out of hand, **improving** the dollars of GPU capacity lost per maintenance cycle (measured against a "do it ASAP during business hours" plan).
+**When** maintenance takes racks offline in a GPU data center, **the operations lead struggles to** decide what goes down and when, **because** they can't see what each lost GPU-hour is worth today, or what the work does to cooling. **Our solution helps them** schedule every job at its cheapest safe hour, **improving** two numbers: overheat hours, and dollars lost each week (measured against a "do it ASAP during business hours" plan: demo week 5 → 0 overheat hours, $31,867 → $18,223).
 
 - **User:** the operations lead at a GPU data center planning this week's maintenance backlog. There's one switch between two modes:
   - **GPU cloud mode:** cost = lost revenue + SLA penalties for contract hours missed.
@@ -130,8 +130,9 @@ Agree on the `Task` and `Plan` JSON shapes **in the first 20 minutes** before sp
 - [ ] **Ask the NMC² booth:** what maintenance actually costs them, and how they schedule it now. Their answer can make a pitch line.
 
 ## Pitch (full script, 30-second version and Q&A in `PITCH.md`)
-- **One-liner:** We schedule GPU data-center maintenance at the lowest compute-market cost, without letting the hall overheat; Nemotron turns a plain-English work request into a safe, priced plan.
-- **Roles (proposed):** Driver Nandhan · Narrator Loki · Tech answers Loki + Nandhan · Backup Fawaz (video, hotspot, timer)
+- **One-liner:** An AI maintenance agent for GPU data centers: Nemotron decides when each job runs, weighing downtime priced in GPU-market dollars against failure risk; code does the math and won't let it overheat the hall.
+- **Judging format:** table demo, 3 min + 2 min Q&A, all three present.
+- **Roles:** Driver + narrator Loki · Q&A optimizer/sim/3D/UI Nandhan · Q&A prices/negotiation + timekeeper + backup video/hotspot Fawaz
 - **Lead with "0 overheats vs 5"**, not the 42.8%.
 
 ## Open (still undecided)
@@ -177,3 +178,4 @@ Sleep in shifts; someone is always building.
 - Sun 05:30 Nandhan: UI is GPU-cloud only. Removed the Private DC toggle, the summary's "try the other mode" button and `?mode=private`. Backend `private` mode untouched. Replacement-compute panel compacted (provider cards collapse to a one-line outcome, ledger folds).
 - Sun 06:2x Nandhan: product name decided: **DC Router** (nav brand, page title, README, PITCH, DEVPOST, DEMO_SCRIPT).
 - Sun 02:5x Fawaz: replacement-compute procurement (docs/PROCUREMENT.md). INC1 takes C01-C05 down 3 h; Nebius and CoreWeave render as islands beside the hall; negotiator drone flies to each, code-bounded negotiation (opening ask from market price, secret floor, 5% steps), returns an offer; operator accepts or declines into a simulated ledger. Covers contracted share only (336 GPU-h); buy only below $3.575 break-even. Planner and pitch numbers unchanged. Inspired by Elix (propose, policy, approve, ledger).
+- Sun 0x:xx Loki: PITCH.md rewritten for the table demo (3 + 2 min, all three): Loki drives and narrates, Q&A owners per question, prompt tie-back tables, clicks checked against the running app (alarm run 28 s live; after the alarm the week plays to the end card over the drone, so pause or close it; handoff + offer card are below the fold in the right panel). Nemotron framed as the decision-maker ("Nemotron makes the calls, code does the math").
